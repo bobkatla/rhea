@@ -11,9 +11,9 @@ b_x = scipy.stats.boxcox
 
 def process_from_census_data(normalise=True, boxcox=True):
     # This is simple to get the census data clean (assuming all shape the same, need to be quick)
-    all_files =  glob.glob(os.path.join("./" , "*POA*"))
+    all_files =  glob.glob(os.path.join("./data" , "*POA*"))
     # remove header and footer from ABS
-    total_df = pd.read_csv("total.csv", skiprows=9, skipfooter=7, engine='python')
+    total_df = pd.read_csv("data/total.csv", skiprows=9, skipfooter=7, engine='python')
     total_df = total_df.dropna(axis=1, how='all')
     total_df.index = total_df.index.map(lambda r: r.replace(", VIC", ""))
     ls_df = [total_df]
