@@ -29,6 +29,7 @@ def convert_sample_data_to_census_format(disag_data, dict_cross):
     # Create new df and return based on np array
     result_arr = []
     for index, row in d_data.iterrows():
+        print(f"Doing {index}")
         val_convered_census = [0 for _ in range(n_census_col)]
         for att in ls_atts_need_to_assess:
             census_name_check = None
@@ -86,7 +87,7 @@ def run_lr_EV():
     process_sample_data["EV_pred"] = re_pred
     process_sample_data["SA1"] = h_sample_test["SA1"]
 
-    process_sample_data.to_csv("results_EV_pred.csv", index=False)
+    process_sample_data.to_csv("results_EV_pred_2.csv", index=False)
 
 
 def main():
