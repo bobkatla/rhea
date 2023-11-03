@@ -3,7 +3,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-from feature_select.feature_importance import process_from_census_data
+from feature_importance import process_from_census_data
 import pandas as pd
 import numpy as np
 
@@ -33,7 +33,7 @@ def convert_sample_data_to_census_format(disag_data, dict_cross):
     # Create new df and return based on np array
     result_arr = []
     for index, row in d_data.iterrows():
-        # print(f"Doing {index}")
+        print(f"Doing {index}")
         val_convered_census = [0 for _ in range(n_census_col)]
         for att in ls_atts_need_to_assess:
             census_name_check = None
@@ -102,8 +102,8 @@ def get_ev_pred(model, to_pred_data):
 def combine_and_test_diff_methods():
     # Get the to predict data
     d_cross = pd.read_csv("data/dict_cross.csv")
-    h_sample_test = pd.read_csv("data/synthetic_2021_HH_POA.csv")
-    # h_sample_test = pd.read_csv("data/new_syn_2021_HH.csv", index_col=0)
+    # h_sample_test = pd.read_csv("data/synthetic_2021_HH_POA.csv")
+    h_sample_test = pd.read_csv("data/new_syn_2021_HH_SA1.csv", index_col=0)
     # h_sample_test = pd.read_csv(r".\data\H_sample.csv")
     h_sample_test = h_sample_test[[
         "totalvehs",
@@ -114,10 +114,12 @@ def combine_and_test_diff_methods():
     ]]
     print("Converting the population to the needed format")
     process_sample_data, converted_sample_data = convert_sample_data_to_census_format(h_sample_test, d_cross)
-    process_sample_data.to_csv("./POA_to_pred.csv", index=False)
-    converted_sample_data.to_csv("./POA_converted_to_input.csv", index=False)
+    process_sample_data.to_csv("./SA1_to_pred.csv", index=False)
+    converted_sample_data.to_csv("./SA1_converted_to_input.csv", index=False)
+    # process_sample_data = pd.read_csv("output/EV_pred/POA_to_pred.csv")
+    # converted_sample_data = pd.read_csv("output/EV_pred/POA_converted_to_input.csv")
 
-    df = process_from_census_data(boxcox=False)
+    df = process_from_census_data(geo_lev="POA", boxcox=False)
     X = df.drop(columns="Electric").astype("float")
     y = df["Electric"].astype("float")
 
@@ -133,7 +135,7 @@ def combine_and_test_diff_methods():
     for re in final_re:
         process_sample_data[f"EV_pred_{re}"] = final_re[re]
 
-    process_sample_data.to_csv("./POA_EV_pred.csv", index=False)
+    process_sample_data.to_csv("./SA1_EV_pred_all.csv", index=False)
 
 
 def main():
