@@ -9,11 +9,11 @@ import math
 b_x = scipy.stats.boxcox
 
 
-def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_same=False):
+def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_same=False, return_tot=False):
     # This is simple to get the census data clean (assuming all shape the same, need to be quick)
-    all_files =  glob.glob(os.path.join("./data" , f"*{geo_lev}*"))
+    all_files =  glob.glob(os.path.join("./data" , f"{geo_lev}*"))
     # remove header and footer from ABS
-    total_df = pd.read_csv("data/total.csv", skiprows=9, skipfooter=7, engine='python')
+    total_df = pd.read_csv(f"data/total_{geo_lev}.csv", skiprows=9, skipfooter=7, engine='python')
     total_df = total_df.dropna(axis=1, how='all')
     total_df.index = total_df.index.map(lambda r: r.replace(", VIC", ""))
     ls_df = [total_df]
@@ -22,7 +22,8 @@ def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_sa
         df = df.dropna(axis=1, how='all')
         df = df.dropna(axis=0, thresh=6)
         df = df[:-1]
-        df = df.drop(columns=["Total"])
+        if "Total" in df.columns:
+            df = df.drop(columns=["Total"])
         first_row = df.columns[0]
         df[first_row] = df[first_row].apply(lambda r: r.replace(", VIC", ""))
         df = df.set_index(first_row)
@@ -68,17 +69,18 @@ def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_sa
                 hold_df["Something Else"] = df["Other tenure type"]
                 df = hold_df
         
-        df.index.name = "POA"
+        df.index.name = geo_lev
         ls_df.append(df)
     final_df = pd.concat(ls_df, axis=1)
     final_df = final_df.dropna(axis=0, thresh=10)
 
     # Normalisation
+    tot_df = final_df[f"{geo_lev} (EN)"]
     if normalise:
         for col in final_df.columns:
-            if col != "POA (EN)":
-                final_df[col]= final_df[col] / final_df["POA (EN)"]
-    final_df = final_df.drop(columns=["POA (EN)"])
+            if col != f"{geo_lev} (EN)":
+                final_df[col]= final_df[col].astype(float) / final_df[f"{geo_lev} (EN)"].astype(float)
+    final_df = final_df.drop(columns=[f"{geo_lev} (EN)"])
     
     # box-cox to make it more "normal"
     if boxcox:
@@ -91,7 +93,8 @@ def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_sa
             # print(col)
             # plt.hist(final_df[col], bins=20)
             # plt.show()
-    return final_df
+
+    return (final_df, tot_df) if return_tot else final_df
 
 
 def cal_corr(df, target, method="pearson") -> tuple:
