@@ -180,8 +180,18 @@ def process_pred_pearson():
     to_pred.to_csv(f"{geo_lev}_Pearson_pred.csv", index=False)
 
 
+def quick_process(geo_lev = "POA"):
+    file_loc = "output/EV_pred"
+    df_all = pd.read_csv(f"{file_loc}/{geo_lev}_EV_pred_all.csv")
+    df_pearson = pd.read_csv(f"{file_loc}/{geo_lev}_Pearson_pred.csv")
+    df_all[geo_lev] = df_pearson[geo_lev]
+    df_all["EV_pred_Pearsons"] = df_pearson["EV_pred_Pearsons"]
+    df_all.to_csv(f"{file_loc}/{geo_lev}_EV_pred_all.csv", index=False)
+
+
 def main():
-    process_pred_pearson()
+    # process_pred_pearson()
+    quick_process("SA1")
     # combine_and_test_diff_methods()
     # for method_of_lr in ["GraBoost"]:
     #     print(f"RUNNING {method_of_lr}")
