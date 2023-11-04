@@ -1,100 +1,11 @@
 import pandas as pd
-import os
-import glob
+from sklearn.feature_selection import mutual_info_classif
+from sklearn import preprocessing
+
+from utils import process_from_census_data
+
 import scipy.stats
-import matplotlib.pyplot as plt
-from sklearn.feature_selection import SelectKBest, mutual_info_classif
-import math
-
 b_x = scipy.stats.boxcox
-
-
-def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_same=False, return_tot=False):
-    # This is simple to get the census data clean (assuming all shape the same, need to be quick)
-    all_files =  glob.glob(os.path.join("./data" , f"{geo_lev}*"))
-    # remove header and footer from ABS
-    total_df = pd.read_csv(f"data/total_{geo_lev}.csv", skiprows=9, skipfooter=7, engine='python')
-    total_df = total_df.dropna(axis=1, how='all')
-    total_df.index = total_df.index.map(lambda r: r.replace(", VIC", ""))
-    ls_df = [total_df]
-    for f in all_files:
-        df = pd.read_csv(f, skiprows=9, skipfooter=7, engine='python')
-        df = df.dropna(axis=1, how='all')
-        df = df.dropna(axis=0, thresh=6)
-        df = df[:-1]
-        if "Total" in df.columns:
-            df = df.drop(columns=["Total"])
-        first_row = df.columns[0]
-        df[first_row] = df[first_row].apply(lambda r: r.replace(", VIC", ""))
-        df = df.set_index(first_row)
-
-        if keep_same:
-            df =df.add_prefix(f"{df.index.name}__")
-        else:
-            if df.index.name == "Fuel type":
-                df = df[["Electric"]]
-
-            elif df.index.name == "NPRD Number of Persons Usually Resident in Dwelling":
-                df = df.drop(columns=["Not applicable"])
-            
-            elif df.index.name == "STRD Dwelling Structure":
-                df = df.drop(columns=["Not applicable"])
-
-                ls_town_house = [name for name in df.columns if "townhouse" in name]
-                ls_flat = [name for name in df.columns if "Flat or apartment" in name]
-                ls_others = [name for name in df.columns if name not in ls_town_house and name not in ls_flat and name not in ["Not stated", "Separate house"]]
-
-                hold_df = pd.DataFrame()
-                hold_df["Separate house"] = df["Separate house"]
-                hold_df["Terrace/Townhouse"] = df[ls_town_house].sum(axis=1, numeric_only=True)
-                hold_df["Flat or apartment"] = df[ls_flat].sum(axis=1, numeric_only=True)
-                hold_df["Other"] = df[ls_others].sum(axis=1, numeric_only=True)
-                hold_df["Missing"] = df["Not stated"]
-                df = hold_df
-        
-            elif df.index.name == "HIND Total Household Income (weekly)":
-                df = df.drop(columns=["Not applicable", "Negative income", "Partial income stated", "All incomes not stated"])
-            
-            elif df.index.name == "VEHRD Number of Motor Vehicles (ranges)":
-                df = df.drop(columns=["Not applicable", "Not stated"])
-            
-            elif df.index.name == "TENLLD Tenure and Landlord Type":
-                df = df.drop(columns=["Tenure type not applicable", "Tenure type not stated"])
-                ls_rent = [name for name in df.columns if "Rented" in name]
-                hold_df = pd.DataFrame()
-                hold_df["Fully Owned"] = df['Owned outright']
-                hold_df["Being Purchased"] = df['Owned with a mortgage']
-                hold_df["Being Rented"] = df[ls_rent].sum(axis=1, numeric_only=True)
-                # Cannot identify which part of occupied Rent-Free belong to
-                hold_df["Something Else"] = df["Other tenure type"]
-                df = hold_df
-        
-        df.index.name = geo_lev
-        ls_df.append(df)
-    final_df = pd.concat(ls_df, axis=1)
-    final_df = final_df.dropna(axis=0, thresh=10)
-
-    # Normalisation
-    tot_df = final_df[f"{geo_lev} (EN)"]
-    if normalise:
-        for col in final_df.columns:
-            if col != f"{geo_lev} (EN)":
-                final_df[col]= final_df[col].astype(float) / final_df[f"{geo_lev} (EN)"].astype(float)
-    final_df = final_df.drop(columns=[f"{geo_lev} (EN)"])
-    
-    # box-cox to make it more "normal"
-    if boxcox:
-        for col in final_df.columns:
-            final_df[col] = final_df[col].apply(lambda r: r+1)
-            re_bx = b_x(final_df[col])
-            print(f"{col}'s lambda val: {re_bx[1]}")
-            final_df[col] = re_bx[0]
-
-            # print(col)
-            # plt.hist(final_df[col], bins=20)
-            # plt.show()
-
-    return (final_df, tot_df) if return_tot else final_df
 
 
 def cal_corr(df, target, method="pearson") -> tuple:
@@ -114,8 +25,6 @@ def cal_corr(df, target, method="pearson") -> tuple:
         results.append((col, score))
     return results
 
-from sklearn import preprocessing
-from sklearn import utils
 
 def cal_MI(df, target) -> tuple:
     target_seri = df[target]
