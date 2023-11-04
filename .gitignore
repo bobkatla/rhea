@@ -18,4 +18,4 @@ Clustering_NewDataSet/1270055001_sa2_2016_aust_shape/SA2_2016_AUST.shx
 Clustering_NewDataSet/1270055001_sa2_2016_aust_shape/SA2_2016_AUST.shp
 data/
 output/
-
+*.pyc

@@ -21,6 +21,28 @@ def holding_land():
     # hold.to_csv("data/dict_cross.csv", index=False)
 
 
+def condition_d_cross(val, sample_val):
+    condition = None
+    if "-" in sample_val and "Rent" not in sample_val:
+        # This is a range
+        min_v, max_v = sample_val.split("-")
+        min_v, max_v = float(min_v), float(max_v)
+        condition = float(val) >= min_v and float(val) <= max_v
+    elif "+" in sample_val:
+        # This is a plus
+        thres_v = sample_val.replace("+", "")
+        thres_v = float(thres_v)
+        condition = float(val) >= thres_v
+    else:
+        # Equal check
+        if sample_val.isdigit():
+            val = float(val)
+            sample_val = float(sample_val)
+        condition = str(val) == str(sample_val)
+
+    assert condition is not None
+    return condition
+
 
 def convert_sample_data_to_census_format(disag_data, dict_cross):
     # Dict_cross will have 3 columns: Census_name, Sample_att and Sample_val
@@ -40,25 +62,7 @@ def convert_sample_data_to_census_format(disag_data, dict_cross):
             val = row[att]
             check = dict_cross[dict_cross["Sample_att"]==att]
             for census_name, sample_val in zip(check["Census_name"], check["Sample_val"]):
-                condition = None
-                if "-" in sample_val and "Rent" not in sample_val:
-                    # This is a range
-                    min_v, max_v = sample_val.split("-")
-                    min_v, max_v = float(min_v), float(max_v)
-                    condition = float(val) >= min_v and float(val) <= max_v
-                elif "+" in sample_val:
-                    # This is a plus
-                    thres_v = sample_val.replace("+", "")
-                    thres_v = float(thres_v)
-                    condition = float(val) >= thres_v
-                else:
-                    # Equal check
-                    if sample_val.isdigit():
-                        val = float(val)
-                        sample_val = float(sample_val)
-                    condition = str(val) == str(sample_val)
-
-                assert condition is not None
+                condition = condition_d_cross(val, sample_val)
                 if condition:
                     census_name_check = census_name
             if census_name_check is None:
@@ -135,11 +139,50 @@ def combine_and_test_diff_methods():
     for re in final_re:
         process_sample_data[f"EV_pred_{re}"] = final_re[re]
 
+    # Forgot to add the location zone
     process_sample_data.to_csv("./SA1_EV_pred_all.csv", index=False)
 
 
+def process_pred_pearson():
+    geo_lev = "POA"
+    ori_df = pd.read_csv("data/synthetic_2021_HH_POA.csv", index_col=0)
+    
+    ori_df = ori_df.reset_index()
+    to_pred = pd.read_csv(f"output/EV_pred/{geo_lev}_to_pred.csv")
+    ls_cols = to_pred.columns.drop("hhid")
+    to_pred[geo_lev] = ori_df[geo_lev]
+
+    pearson_val = pd.read_csv(f"output/feature_importance/att_rank_pearson.csv")
+    d_cross = pd.read_csv("data/dict_cross.csv")
+
+    dict_pear_val = dict(zip(pearson_val["Att"], pearson_val["pearson_score"]))
+    dict_val_final = {}
+    for att in ls_cols:
+        hold_df = d_cross[d_cross["Sample_att"]==att]
+        for val in to_pred[att].unique():
+            for census_name, state in zip(hold_df["Census_name"], hold_df["Sample_val"]):
+                condition = condition_d_cross(val, state)
+                if condition:
+                    dict_val_final[(att, str(val))] = dict_pear_val[census_name]
+                    break
+
+    def f_row(row):
+        final_score = 0
+        for col in ls_cols:
+            cell_v = str(float(row[col])) if str(row[col]).replace(".", "").isnumeric() else row[col]
+            val = dict_val_final[(col, cell_v)]
+            final_score += float(val)
+        return final_score
+    
+    to_pred["EV_pred_Pearsons"] = to_pred.apply(f_row, axis=1)
+
+    print(to_pred)
+    to_pred.to_csv(f"{geo_lev}_Pearson_pred.csv", index=False)
+
+
 def main():
-    combine_and_test_diff_methods()
+    process_pred_pearson()
+    # combine_and_test_diff_methods()
     # for method_of_lr in ["GraBoost"]:
     #     print(f"RUNNING {method_of_lr}")
     #     run_lr_EV(method_of_lr)
