@@ -23,21 +23,13 @@ def holding_land():
 
 def condition_d_cross(val, sample_val):
     condition = None
-    if "-" in sample_val and "Rent" not in sample_val:
-        # This is a range
-        min_v, max_v = sample_val.split("-")
-        min_v, max_v = float(min_v), float(max_v)
-        condition = float(val) >= min_v and float(val) <= max_v
-    elif "+" in sample_val:
-        # This is a plus
+    if "8+" == sample_val:
+        # This is a plus, only special case for hhsize
         thres_v = sample_val.replace("+", "")
         thres_v = float(thres_v)
         condition = float(val) >= thres_v
     else:
         # Equal check
-        if sample_val.isdigit():
-            val = float(val)
-            sample_val = float(sample_val)
         condition = str(val) == str(sample_val)
 
     assert condition is not None
@@ -106,8 +98,7 @@ def get_ev_pred(model, to_pred_data):
 def combine_and_test_diff_methods():
     # Get the to predict data
     d_cross = pd.read_csv("data/dict_cross.csv")
-    # h_sample_test = pd.read_csv("data/synthetic_2021_HH_POA.csv")
-    h_sample_test = pd.read_csv("data/new_syn_2021_HH_SA1.csv", index_col=0)
+    h_sample_test = pd.read_csv("data/syn_hh_final.csv")
     # h_sample_test = pd.read_csv(r".\data\H_sample.csv")
     h_sample_test = h_sample_test[[
         "totalvehs",
@@ -118,8 +109,8 @@ def combine_and_test_diff_methods():
     ]]
     print("Converting the population to the needed format")
     process_sample_data, converted_sample_data = convert_sample_data_to_census_format(h_sample_test, d_cross)
-    process_sample_data.to_csv("./SA1_to_pred.csv", index=False)
-    converted_sample_data.to_csv("./SA1_converted_to_input.csv", index=False)
+    process_sample_data.to_csv("./output/POA_to_pred.csv", index=False)
+    converted_sample_data.to_csv("./output/POA_converted_to_input.csv", index=False)
     # process_sample_data = pd.read_csv("output/EV_pred/POA_to_pred.csv")
     # converted_sample_data = pd.read_csv("output/EV_pred/POA_converted_to_input.csv")
 
@@ -140,7 +131,7 @@ def combine_and_test_diff_methods():
         process_sample_data[f"EV_pred_{re}"] = final_re[re]
 
     # Forgot to add the location zone
-    process_sample_data.to_csv("./SA1_EV_pred_all.csv", index=False)
+    process_sample_data.to_csv("./output/POA_EV_pred_all.csv", index=False)
 
 
 def process_pred_pearson():
@@ -191,8 +182,8 @@ def quick_process(geo_lev = "POA"):
 
 def main():
     # process_pred_pearson()
-    quick_process("SA1")
-    # combine_and_test_diff_methods()
+    # quick_process("SA1")
+    combine_and_test_diff_methods()
     # for method_of_lr in ["GraBoost"]:
     #     print(f"RUNNING {method_of_lr}")
     #     run_lr_EV(method_of_lr)
