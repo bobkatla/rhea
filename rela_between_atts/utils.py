@@ -46,7 +46,7 @@ def process_from_census_data(geo_lev='POA', normalise=True, boxcox=True, keep_sa
     # This is simple to get the census data clean (assuming all shape the same, need to be quick)
     all_files =  glob.glob(os.path.join("./data" , f"{geo_lev}*"))
     # remove header and footer from ABS
-    total_df = pd.read_csv(f"data/total_{geo_lev}.csv", skiprows=9, skipfooter=7, engine='python')
+    total_df = pd.read_csv(f"data/total_hh_{geo_lev}.csv", skiprows=9, skipfooter=7, engine='python')
     total_df = total_df.dropna(axis=1, how='all')
     total_df.index = total_df.index.map(lambda r: r.replace(", VIC", ""))
     ls_df = [total_df]

@@ -2,10 +2,12 @@ from sklearn.linear_model import LinearRegression, LogisticRegression, SGDClassi
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import make_pipeline
 from feature_importance import process_from_census_data
 import pandas as pd
 import numpy as np
+import statistics as stat
 
 
 def holding_land():
@@ -70,7 +72,7 @@ def convert_sample_data_to_census_format(disag_data, dict_cross):
     return d_data, result_converted_df
     
 
-def get_model_ev_pred(method_of_lr, X, y):
+def get_model_ev_pred(method_of_lr, X, y, action="fit"):
     model = None
     if method_of_lr == 'lr':
         model = LinearRegression()
@@ -85,8 +87,12 @@ def get_model_ev_pred(method_of_lr, X, y):
     elif method_of_lr == "GraBoost":
         model = GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=1, random_state=0,loss='squared_error')
     
-    model.fit(X, y)
-    return model
+    if action == "fit":
+        model.fit(X, y)
+        return model, None
+    else:
+        score = cross_val_score(model, X, y, cv=10, scoring=action)
+        return model, score
 
 
 def get_ev_pred(model, to_pred_data):
@@ -108,30 +114,40 @@ def combine_and_test_diff_methods():
         "hhinc",
     ]]
     print("Converting the population to the needed format")
-    process_sample_data, converted_sample_data = convert_sample_data_to_census_format(h_sample_test, d_cross)
-    process_sample_data.to_csv("./output/POA_to_pred.csv", index=False)
-    converted_sample_data.to_csv("./output/POA_converted_to_input.csv", index=False)
-    # process_sample_data = pd.read_csv("output/EV_pred/POA_to_pred.csv")
-    # converted_sample_data = pd.read_csv("output/EV_pred/POA_converted_to_input.csv")
+    # process_sample_data, converted_sample_data = convert_sample_data_to_census_format(h_sample_test, d_cross)
+    # process_sample_data.to_csv("./output/POA_to_pred.csv", index=False)
+    # converted_sample_data.to_csv("./output/POA_converted_to_input.csv", index=False)
+    process_sample_data = pd.read_csv("output/EV_pred/POA_to_pred.csv")
+    converted_sample_data = pd.read_csv("output/EV_pred/POA_converted_to_input.csv")
 
     df = process_from_census_data(geo_lev="POA", boxcox=False)
     X = df.drop(columns="Electric").astype("float")
     y = df["Electric"].astype("float")
 
     final_re = {}
+    final_scoring_methods = {}
+    ls_metrics = ["r2", "max_error"]
     for method_of_lr in ["forest", 'baye', 'lr', 'GraBoost']:
-        print(f"DOING fit model {method_of_lr}")
-        model = get_model_ev_pred(method_of_lr, X, y)
-        print("Predicting")
-        ev_re = get_ev_pred(model, converted_sample_data)
-        print("OUTPUT")
-        final_re[method_of_lr] = ev_re
-    
+        print(f"DOING scoring model {method_of_lr}")
+        final_score = []
+        for score in ls_metrics:
+            _, scores = get_model_ev_pred(method_of_lr, X, y, action=score)
+            final_score.append(stat.mean(scores))
+        final_scoring_methods[method_of_lr] = final_score
+
+        # print(f"DOING fit model {method_of_lr}")
+        # model, _ = get_model_ev_pred(method_of_lr, X, y, action="fit")
+        # print("Predicting")
+        # ev_re = get_ev_pred(model, converted_sample_data)
+        # print("OUTPUT")
+        # final_re[method_of_lr] = ev_re
+    score_df = pd.DataFrame(final_scoring_methods, index=ls_metrics)
+    score_df.to_csv("./output/scores_diff_methods.csv")
     for re in final_re:
         process_sample_data[f"EV_pred_{re}"] = final_re[re]
 
     # Forgot to add the location zone
-    process_sample_data.to_csv("./output/POA_EV_pred_all.csv", index=False)
+    # process_sample_data.to_csv("./output/POA_EV_pred_all.csv", index=False)
 
 
 def process_pred_pearson():
