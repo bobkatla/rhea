@@ -22,6 +22,10 @@ def import_processed_census_data():
 
     census_hh.columns = [f"{x[0]}_{x[1]}" for x in list(zip(census_hh.columns.get_level_values(0), census_hh.columns.get_level_values(1)))]
     census_pp.columns = [f"{x[0]}_{x[1]}" for x in list(zip(census_pp.columns.get_level_values(0), census_pp.columns.get_level_values(1)))]
+
+    # special case - zero-cell
+    census_hh["hhinc_Nil income"] = census_hh["hhinc_Nil income"] + census_hh["hhinc_Negative income"]
+    census_hh = census_hh.drop(columns=["hhinc_Negative income"])
     return census_hh, census_pp
 
 
@@ -63,11 +67,11 @@ def convert_sample_data_to_census_format(disag_data: pd.DataFrame):
 
 def main():
     census_hh, census_pp = import_processed_census_data()
-    syn_hh, syn_pp = import_syn_data()
-    matrix_hh = convert_sample_data_to_census_format(syn_hh)
-    matrix_pp = convert_sample_data_to_census_format(syn_pp)
-    matrix_hh.to_csv(data_folder / "processed/matrix_hh.csv")
-    matrix_pp.to_csv(data_folder / "processed/matrix_pp.csv")
+    # syn_hh, syn_pp = import_syn_data()
+    # matrix_hh = convert_sample_data_to_census_format(syn_hh)
+    # matrix_pp = convert_sample_data_to_census_format(syn_pp)
+    # matrix_hh.to_csv(data_folder / "processed/matrix_hh.csv")
+    # matrix_pp.to_csv(data_folder / "processed/matrix_pp.csv")
     census_hh.to_csv(data_folder / "processed/processed_census_hh.csv")
     census_pp.to_csv(data_folder / "processed/processed_census_pp.csv")
 
