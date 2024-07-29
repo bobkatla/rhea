@@ -50,11 +50,15 @@ def get_processed_data(type="hh"):
     census_input = pd.read_csv(census_file, index_col=0)
     predict_syn = pd.read_csv(to_predict, index_col=0)
 
-    # NOTE: will need to fix this
+    # NOTE: filter based on this
     if type =="pp":
+        predict_syn = predict_syn[predict_syn["nolicence_Some Licence"]==1]
         drop_cols = [x for x in predict_syn.columns if "nolicence_" in x or "relationship_" in x]
         predict_syn = predict_syn.drop(columns=drop_cols)
-
+    elif type == "hh":
+        predict_syn = predict_syn[predict_syn["totalvehs_0"]==0]
+        predict_syn = predict_syn.drop(columns=["totalvehs_0"])
+        census_input = census_input.drop(columns=["totalvehs_0"])
     return census_input, predict_syn
 
 
@@ -90,8 +94,10 @@ def main():
     else:
         ori_syn = pd.read_csv(syn_dir / "syn_pp_ipu.csv")
     
+    # Need to update this
     for method, val in final_re.items():
-        ori_syn[f"EV_score_{method}"] = val
+        ori_syn[f"EV_score_{method}"] = 0
+        ori_syn.loc[predict_syn.index, f"EV_score_{method}"] = val
 
     ori_syn.to_csv(data_folder / "final" / f"syn_{type_check}_with_ev_score.csv")
 

@@ -24,7 +24,7 @@ def import_processed_census_data():
     census_pp.columns = [f"{x[0]}_{x[1]}" for x in list(zip(census_pp.columns.get_level_values(0), census_pp.columns.get_level_values(1)))]
 
     # special case - zero-cell
-    census_hh["hhinc_Nil income"] = census_hh["hhinc_Nil income"] + census_hh["hhinc_Negative income"]
+    # census_hh["hhinc_Nil income"] = census_hh["hhinc_Nil income"] + census_hh["hhinc_Negative income"]
     census_hh = census_hh.drop(columns=["hhinc_Negative income"])
     return census_hh, census_pp
 
