@@ -96,7 +96,7 @@ def main():
     
     # Need to update this
     for method, val in final_re.items():
-        ori_syn[f"EV_score_{method}"] = 0
+        ori_syn[f"EV_score_{method}"] = -100000000
         ori_syn.loc[predict_syn.index, f"EV_score_{method}"] = val
 
     ori_syn.to_csv(data_folder / "final" / f"syn_{type_check}_with_ev_score.csv")
